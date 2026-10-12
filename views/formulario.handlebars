@@ -1,0 +1,157 @@
+<header class="topo">
+  <h1>Gerenciador de Estoque</h1>
+</header>
+
+<main class="conteudo">
+
+  <!-- Formulário de cadastro -->
+  <section class="form-cadastro">
+    <h2>Cadastrar produto</h2>
+    <form action="/cadastrar" method="post" enctype="multipart/form-data">
+      <input type="text" name="nome" placeholder="Nome do produto">
+      <input type="number" name="valor" placeholder="Valor do produto">
+      <input type="number" name="estoque" placeholder="Quantidade em estoque">
+      <input type="file" name="imagem">
+      <input type="submit" value="Cadastrar">
+    </form>
+  </section>
+
+  <!-- Filtro -->
+  <section class="filtro">
+    <input type="text" placeholder="Buscar produto...">
+    <button>Buscar</button>
+  </section>
+
+  <!-- Tabela de produtos -->
+  <section class="tabela-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Imagem</th>
+          <th>Código</th>
+          <th>Nome</th>
+          <th>Estoque</th>
+          <th>Valor</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each produtos}}
+        <tr>
+          <td><img src="/imagens/{{imagem}}" alt="{{nome}}" class="miniatura"></td>
+          <td>{{codigo}}</td>
+          <td>{{nome}}</td>
+          <td>{{estoque}}</td>
+          <td>R$ {{valor}}</td>
+          <td>
+            <a href="#" class="acao excluir" onclick="confirmarExclusao({{codigo}}, '{{imagem}}'); return false;">Excluir</a>
+            <a href="#" class="acao editar" onclick="abrirEdicao({{codigo}}); return false;">Editar</a>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Modal de edição -->
+  <div id="modalEditar" class="modal-overlay" style="display:none;">
+    <div class="modal-caixa">
+
+      <div class="modal-cabecalho">
+        <span>Editar Produto</span>
+        <span id="fecharModal" class="fechar">&times;</span>
+      </div>
+
+      <div class="modal-corpo">
+        <form action="/editar" method="post" enctype="multipart/form-data" id="formEditar">
+          <input type="hidden" name="codigo" id="edit-codigo">
+          <input type="hidden" name="nomeImagem" id="edit-nomeImagem">
+
+          <label>Nome:</label>
+          <input type="text" name="nome" id="edit-nome">
+
+          <label>Valor:</label>
+          <input type="number" name="valor" id="edit-valor">
+
+          <label>Estoque:</label>
+          <input type="number" name="estoque" id="edit-estoque">
+
+          <label>Nova imagem (opcional):</label>
+          <input type="file" name="imagem">
+
+          <div class="modal-rodape">
+            <button type="button" id="fecharModalBtn" class="btn-sair">Sair</button>
+            <input type="submit" value="Salvar" class="btn-salvar">
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+  <div id="alerta" class="alerta" style="display:none;"></div>
+
+</main>
+
+<script>
+  //janela da parte de ediçao
+function abrirEdicao(codigo) {
+    fetch('/produto/' + codigo)
+        .then(res => res.json())
+        .then(produto => {
+            document.getElementById('edit-codigo').value = produto.codigo
+            document.getElementById('edit-nomeImagem').value = produto.imagem
+            document.getElementById('edit-nome').value = produto.nome
+            document.getElementById('edit-valor').value = produto.valor
+            document.getElementById('edit-estoque').value = produto.estoque
+
+            document.getElementById('modalEditar').style.display = 'flex'
+        })
+}
+
+function fecharEdicao() {
+    document.getElementById('modalEditar').style.display = 'none'
+}
+
+document.getElementById('fecharModal').addEventListener('click', fecharEdicao)
+document.getElementById('fecharModalBtn').addEventListener('click', fecharEdicao)
+
+// alerta de tudo certo ou nao
+window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('status')
+    const msg = params.get('msg')
+
+    if (status && msg) {
+        const alerta = document.getElementById('alerta')
+        alerta.textContent = msg
+        alerta.className = 'alerta ' + (status === 'ok' ? 'alerta-sucesso' : 'alerta-erro')
+        alerta.style.display = 'block'
+
+        // some sozinho depois de 4 segundos
+        setTimeout(() => {
+            alerta.style.display = 'none'
+        }, 4000)
+
+        // limpa a URL pra não ficar "presa" no ?status=ok se der refresh
+        window.history.replaceState({}, document.title, '/')
+    }
+})
+//Confirmar ação
+function confirmarExclusao(codigo, imagem) {
+    const confirmou = confirm('Tem certeza que deseja excluir este produto?')
+
+    if (confirmou) {
+        window.location.href = '/remover/' + codigo + '&' + imagem
+    }
+}
+
+document.getElementById('formEditar').addEventListener('submit', confirmarEdicao)
+
+function confirmarEdicao(event) {
+    const confirmou = confirm('Deseja salvar as alterações?')
+
+    if (!confirmou) {
+        event.preventDefault()
+    }
+}
+</script>
